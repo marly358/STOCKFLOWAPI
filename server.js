@@ -1,8 +1,12 @@
+require('dotenv').config();
+
 const express = require('express');
 const connectDB = require('./config/db');
 
 const app = express();
-const PORT = 3000;
+
+// Puerto configurable mediante variable de entorno (fallback a 3000).
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
