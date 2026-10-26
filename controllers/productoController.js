@@ -1,5 +1,14 @@
 const mongoose = require('mongoose');
-const { registrarProducto } = require('../services/productoService');
+const { registrarProducto, listarProductos } = require('../services/productoService');
+
+async function consultarProductos(req, res, next) {
+  try {
+    const productos = await listarProductos();
+    return res.status(200).json(productos);
+  } catch (error) {
+    return next(error);
+  }
+}
 
 function validarDatosProducto(datos) {
   const errores = [];
@@ -73,4 +82,4 @@ async function crearProducto(req, res, next) {
   }
 }
 
-module.exports = { crearProducto };
+module.exports = { crearProducto, consultarProductos };

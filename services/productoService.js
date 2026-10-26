@@ -5,4 +5,8 @@ async function registrarProducto(datosProducto) {
   return producto.save();
 }
 
-module.exports = { registrarProducto };
+async function listarProductos() {
+  return Producto.find();
+}
+
+module.exports = { registrarProducto, listarProductos };
