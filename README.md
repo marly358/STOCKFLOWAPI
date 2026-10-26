@@ -17,7 +17,7 @@ Content-Type: application/json
 }
 ```
 
-<<<<<<< HEAD
+
 ## Gestionar categorías
 
 `POST /api/categorias` crea una categoría. El campo `nombre` es obligatorio; `descripcion` es opcional.
