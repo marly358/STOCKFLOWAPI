@@ -1,0 +1,76 @@
+const mongoose = require('mongoose');
+const { registrarProducto } = require('../services/productoService');
+
+function validarDatosProducto(datos) {
+  const errores = [];
+
+  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+    return ['El cuerpo de la solicitud debe ser un objeto JSON.'];
+  }
+
+  const camposPermitidos = ['nombre', 'precio', 'stock', 'descripcion'];
+  const camposDesconocidos = Object.keys(datos).filter(
+    (campo) => !camposPermitidos.includes(campo)
+  );
+
+  if (camposDesconocidos.length > 0) {
+    errores.push(`Campos no permitidos: ${camposDesconocidos.join(', ')}.`);
+  }
+
+  if (typeof datos.nombre !== 'string' || datos.nombre.trim().length === 0) {
+    errores.push('El nombre es obligatorio y debe ser un texto no vacío.');
+  }
+
+  if (typeof datos.precio !== 'number' || !Number.isFinite(datos.precio) || datos.precio < 0) {
+    errores.push('El precio es obligatorio y debe ser un número finito mayor o igual a 0.');
+  }
+
+  if (typeof datos.stock !== 'number' || !Number.isInteger(datos.stock) || datos.stock < 0) {
+    errores.push('El stock es obligatorio y debe ser un número entero mayor o igual a 0.');
+  }
+
+  if (datos.descripcion !== undefined && typeof datos.descripcion !== 'string') {
+    errores.push('La descripción debe ser un texto.');
+  }
+
+  return errores;
+}
+
+async function crearProducto(req, res, next) {
+  const errores = validarDatosProducto(req.body);
+
+  if (errores.length > 0) {
+    return res.status(400).json({
+      message: 'Los datos del producto no son válidos.',
+      errors: errores,
+    });
+  }
+
+  try {
+    const producto = await registrarProducto(req.body);
+    return res.status(201).json({
+      message: 'Producto registrado correctamente.',
+      producto,
+    });
+  } catch (error) {
+    if (error instanceof mongoose.Error.ValidationError) {
+      return res.status(400).json({
+        message: 'Los datos del producto no son válidos.',
+        errors: Object.values(error.errors).map(({ path, message }) => ({
+          field: path,
+          message,
+        })),
+      });
+    }
+
+    if (error instanceof mongoose.Error.CastError) {
+      return res.status(400).json({
+        message: `El valor del campo "${error.path}" no tiene un formato válido.`,
+      });
+    }
+
+    return next(error);
+  }
+}
+
+module.exports = { crearProducto };
