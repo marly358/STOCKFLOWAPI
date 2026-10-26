@@ -9,4 +9,20 @@ async function listarProductos() {
   return Producto.find();
 }
 
-module.exports = { registrarProducto, listarProductos };
+async function actualizarProductoPorId(id, datosProducto) {
+  const camposPermitidos = ['nombre', 'precio', 'stock', 'descripcion'];
+  const actualizacion = {};
+
+  for (const campo of camposPermitidos) {
+    if (Object.prototype.hasOwnProperty.call(datosProducto, campo)) {
+      actualizacion[campo] = datosProducto[campo];
+    }
+  }
+
+  return Producto.findByIdAndUpdate(id, actualizacion, {
+    new: true,
+    runValidators: true,
+  });
+}
+
+module.exports = { registrarProducto, listarProductos, actualizarProductoPorId };
