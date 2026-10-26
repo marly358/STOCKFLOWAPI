@@ -17,6 +17,7 @@ Content-Type: application/json
 }
 ```
 
+<<<<<<< HEAD
 ## Gestionar categorías
 
 `POST /api/categorias` crea una categoría. El campo `nombre` es obligatorio; `descripcion` es opcional.
@@ -89,3 +90,34 @@ actual, por ejemplo:
   }
 ]
 ```
+
+## Eliminar un producto
+
+La ruta `DELETE /api/productos/:id` elimina el producto cuyo identificador
+MongoDB se indica en la URL. Si se elimina, responde `200` con un mensaje y el
+producto eliminado. Un identificador inválido responde `400`; si no existe un
+producto con ese ID, responde `404`.
+
+Ejemplo:
+
+```http
+DELETE http://localhost:3000/api/productos/665f1a2b3c4d5e6f78901234
+```
+
+Respuesta al eliminar:
+
+```json
+{
+  "message": "Producto eliminado correctamente.",
+  "producto": {
+    "_id": "665f1a2b3c4d5e6f78901234",
+    "nombre": "Producto de ejemplo",
+    "precio": 19.99,
+    "stock": 25
+  }
+}
+```
+
+Actualmente el proyecto no define movimientos de inventario ni referencias
+entre movimientos y productos. Por eso, esta operación elimina únicamente el
+producto y no realiza borrados en cascada.
