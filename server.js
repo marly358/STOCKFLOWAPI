@@ -4,6 +4,7 @@ const express = require('express');
 const connectDB = require('./config/db');
 const productoRoutes = require('./routes/productoRoutes');
 const categoriaRoutes = require('./routes/categoriaRoutes');
+const movimientoRoutes = require('./routes/movimientoRoutes');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/productos', productoRoutes);
 app.use('/api/categorias', categoriaRoutes);
+app.use('/api/inventario', movimientoRoutes);
 
 app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') {
