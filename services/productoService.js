@@ -25,4 +25,13 @@ async function actualizarProductoPorId(id, datosProducto) {
   });
 }
 
-module.exports = { registrarProducto, listarProductos, actualizarProductoPorId };
+async function eliminarProductoPorId(id) {
+  return Producto.findByIdAndDelete(id);
+}
+
+module.exports = {
+  registrarProducto,
+  listarProductos,
+  actualizarProductoPorId,
+  eliminarProductoPorId,
+};

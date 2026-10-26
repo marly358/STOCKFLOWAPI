@@ -3,6 +3,7 @@ const {
   registrarProducto,
   listarProductos,
   actualizarProductoPorId,
+  eliminarProductoPorId,
 } = require('../services/productoService');
 
 async function consultarProductos(req, res, next) {
@@ -145,4 +146,31 @@ async function actualizarProducto(req, res, next) {
   }
 }
 
-module.exports = { crearProducto, consultarProductos, actualizarProducto };
+async function eliminarProducto(req, res, next) {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+    return res.status(400).json({
+      message: 'El identificador del producto no es válido.',
+    });
+  }
+
+  try {
+    const producto = await eliminarProductoPorId(req.params.id);
+    if (!producto) {
+      return res.status(404).json({ message: 'Producto no encontrado.' });
+    }
+
+    return res.status(200).json({
+      message: 'Producto eliminado correctamente.',
+      producto,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = {
+  crearProducto,
+  consultarProductos,
+  actualizarProducto,
+  eliminarProducto,
+};
