@@ -16,3 +16,19 @@ Content-Type: application/json
   "stock": 25
 }
 ```
+
+## Gestionar categorías
+
+`POST /api/categorias` crea una categoría. El campo `nombre` es obligatorio; `descripcion` es opcional.
+
+```http
+POST http://localhost:3000/api/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas",
+  "descripcion": "Productos de bebidas"
+}
+```
+
+`GET /api/categorias` devuelve las categorías registradas como un arreglo JSON.
