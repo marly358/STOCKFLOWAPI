@@ -7,6 +7,169 @@
   },
   "item": [
     {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Registrar usuario de prueba",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const runId = pm.variables.replaceIn('{{$guid}}').replace(/-/g, '');",
+                  "pm.collectionVariables.set('authEmail', `newman-${runId}@example.com`);",
+                  "pm.collectionVariables.unset('token');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 sin exponer el hash de contraseña', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.usuario.email).to.eql(pm.collectionVariables.get('authEmail')); pm.expect(body.usuario).not.to.have.property('passwordHash'); pm.expect(body.usuario).not.to.have.property('emailNormalizado'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Newman\",\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"PruebaSegura123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Rechazar rol privilegiado en registro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechaza la asignación pública del rol admin', function () { pm.response.to.have.status(400); pm.response.to.be.json; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Newman\",\n  \"email\": \"elevation@example.com\",\n  \"password\": \"PruebaSegura123\",\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Iniciar sesión de usuario de prueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con JWT y sin datos sensibles', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.token).to.be.a('string').and.not.empty; pm.expect(body.usuario).not.to.have.property('passwordHash'); pm.collectionVariables.set('token', body.token); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"PruebaSegura123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Consultar perfil autenticado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('permite consultar el perfil del usuario autenticado', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json().user.email).to.eql(pm.collectionVariables.get('authEmail')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Denegar listado administrativo a usuario normal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403 a un usuario sin rol admin', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users"
+          }
+        }
+      ]
+    },
+    {
       "name": "Estado de la API",
       "item": [
         {
@@ -690,6 +853,14 @@
     },
     {
       "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "authEmail",
+      "value": ""
+    },
+    {
+      "key": "token",
       "value": ""
     }
   ]
