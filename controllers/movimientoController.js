@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
-const { listarExistencias, registrarMovimiento } = require('../services/movimientoService');
+const {
+  listarExistencias,
+  listarMovimientos,
+  registrarMovimiento,
+} = require('../services/movimientoService');
 
 function validarDatosMovimiento(datos) {
   if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
@@ -43,7 +47,8 @@ async function registrar(req, res, next, tipo) {
     const resultado = await registrarMovimiento(
       req.body.productoId,
       req.body.cantidad,
-      tipo
+      tipo,
+      req.user.id
     );
 
     return res.status(201).json({
@@ -58,6 +63,12 @@ async function registrar(req, res, next, tipo) {
 
     if (error.code === 'INVENTORY_INSUFFICIENT_STOCK') {
       return res.status(409).json({ message: error.message });
+    }
+    if (error.code === 'INVENTORY_PRODUCT_INACTIVE') {
+      return res.status(409).json({ message: error.message });
+    }
+    if (error.code === 'INVENTORY_INVALID_INPUT') {
+      return res.status(400).json({ message: error.message });
     }
 
     return next(error);
@@ -81,4 +92,18 @@ async function consultarExistencias(req, res, next) {
   }
 }
 
-module.exports = { registrarEntrada, registrarSalida, consultarExistencias };
+async function consultarMovimientos(req, res, next) {
+  try {
+    const movimientos = await listarMovimientos();
+    return res.status(200).json(movimientos);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = {
+  registrarEntrada,
+  registrarSalida,
+  consultarExistencias,
+  consultarMovimientos,
+};

@@ -21,7 +21,7 @@ describe('Seguridad y permisos', () => {
     process.env.JWT_SECRET = 'test-secret';
   });
 
-  it('rechaza el registro si se intenta asignar un rol administrador', async () => {
+  it('bloquea completamente el registro público', async () => {
     userService.buscarUsuarioPorEmail.mockResolvedValue(null);
 
     const req = {
@@ -37,7 +37,7 @@ describe('Seguridad y permisos', () => {
 
     await authController.registrarUsuario(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(403);
     expect(userService.crearUsuario).not.toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe('Seguridad y permisos', () => {
     const req = {
       params: { id: '507f1f77bcf86cd799439011' },
       body: { role: 'admin' },
-      user: { id: '507f1f77bcf86cd799439011', role: 'usuario' },
+      user: { id: '507f1f77bcf86cd799439011', role: 'bodeguero' },
     };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     const next = jest.fn();
@@ -61,7 +61,7 @@ describe('Seguridad y permisos', () => {
   });
 
   it('deniega acceso por rol insuficiente', () => {
-    const req = { user: { role: 'usuario' } };
+    const req = { user: { role: 'bodeguero' } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     const next = jest.fn();
 
@@ -91,7 +91,7 @@ describe('Seguridad y permisos', () => {
     const req = {
       params: { id: '507f1f77bcf86cd799439011' },
       body: { newPassword: 'ClaveSegura123' },
-      user: { id: '507f1f77bcf86cd799439011', role: 'usuario' },
+      user: { id: '507f1f77bcf86cd799439011', role: 'bodeguero' },
     };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     const next = jest.fn();

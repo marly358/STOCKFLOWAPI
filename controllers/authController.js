@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { crearUsuario, buscarUsuarioPorEmail } = require('../services/userService');
+const { buscarUsuarioPorEmail } = require('../services/userService');
 
 function validarPassword(password) {
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(String(password || ''));
@@ -22,71 +22,14 @@ function generarToken(usuario) {
   );
 }
 
-function validarDatosRegistro(datos) {
-  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
-    return ['El cuerpo de la solicitud debe ser un objeto JSON.'];
-  }
-
-  const errores = [];
-
-  if (typeof datos.nombre !== 'string' || datos.nombre.trim().length < 2) {
-    errores.push('El nombre es obligatorio y debe tener al menos 2 caracteres.');
-  }
-
-  if (typeof datos.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email.trim())) {
-    errores.push('El correo no tiene un formato válido.');
-  }
-
-  if (!validarPassword(datos.password)) {
-    errores.push('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.');
-  }
-
-  if (datos.role && datos.role !== 'usuario') {
-    errores.push('No está permitido asignar roles privilegiados durante el registro.');
-  }
-
-  return errores;
-}
-
-async function registrarUsuario(req, res, next) {
-  const errores = validarDatosRegistro(req.body);
-  if (errores.length > 0) {
-    return res.status(400).json({
-      message: 'Los datos del usuario no son válidos.',
-      errors: errores,
-    });
-  }
-
-  try {
-    const emailExistente = await buscarUsuarioPorEmail(req.body.email);
-    if (emailExistente) {
-      return res.status(409).json({ message: 'Ya existe un usuario registrado con ese correo.' });
-    }
-
-    const usuario = await crearUsuario({
-      nombre: req.body.nombre,
-      email: req.body.email,
-      password: req.body.password,
-      role: 'usuario',
-    });
-
-    return res.status(201).json({
-      message: 'Usuario registrado correctamente.',
-      usuario,
-    });
-  } catch (error) {
-    if (error.code === 11000 || error.name === 'MongoServerError') {
-      return res.status(409).json({ message: 'Ya existe un usuario registrado con ese correo.' });
-    }
-
-    return next(error);
-  }
+function registrarUsuario(req, res) {
+  return res.status(403).json({ message: 'El registro público de usuarios está deshabilitado.' });
 }
 
 async function iniciarSesion(req, res, next) {
   const { email, password } = req.body || {};
 
-  if (!email || !password) {
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(400).json({
       message: 'El correo y la contraseña son obligatorios.',
     });
@@ -94,7 +37,7 @@ async function iniciarSesion(req, res, next) {
 
   try {
     const usuario = await buscarUsuarioPorEmail(email);
-    if (!usuario || !usuario.activo) {
+    if (!usuario || !usuario.activo || !['admin', 'bodeguero'].includes(usuario.role)) {
       return res.status(401).json({ message: 'Credenciales inválidas.' });
     }
 

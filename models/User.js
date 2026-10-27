@@ -40,10 +40,10 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['usuario', 'admin'],
-        message: 'El rol debe ser usuario o admin.',
+        values: ['admin', 'bodeguero'],
+        message: 'El rol debe ser admin o bodeguero.',
       },
-      default: 'usuario',
+      default: 'bodeguero',
     },
     activo: {
       type: Boolean,
@@ -63,25 +63,19 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre('validate', function normalizarDatosUsuario(next) {
+userSchema.pre('validate', function normalizarDatosUsuario() {
   if (typeof this.email === 'string') {
     this.emailNormalizado = normalizarEmail(this.email);
   }
-  next();
 });
 
-userSchema.pre('save', async function hashPassword(next) {
+userSchema.pre('save', async function hashPassword() {
   if (!this.isModified('passwordHash') || !this.passwordHash) {
-    return next();
+    return;
   }
 
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  const salt = await bcrypt.genSalt(12);
+  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
 });
 
 userSchema.methods.comparePassword = function comparePassword(password) {

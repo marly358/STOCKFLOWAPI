@@ -1,14 +1,13 @@
 const User = require('../models/User');
 
-const camposPermitidos = ['nombre', 'email', 'role', 'activo'];
+const camposPermitidos = ['nombre', 'email'];
 
 async function crearUsuario(datos) {
   const usuario = new User({
     nombre: datos.nombre,
     email: datos.email,
     passwordHash: datos.password,
-    role: datos.role || 'usuario',
-    activo: datos.activo !== false,
+    role: 'bodeguero',
   });
 
   await usuario.save();
@@ -46,7 +45,7 @@ async function actualizarUsuarioPorId(id, datos) {
   }
 
   return User.findByIdAndUpdate(id, actualizacion, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   });
 }
@@ -63,10 +62,14 @@ async function cambiarPasswordPorId(id, nuevaPassword) {
 }
 
 async function desactivarUsuarioPorId(id, activo) {
+  if (typeof activo !== 'boolean') {
+    throw new TypeError('El estado activo debe ser booleano.');
+  }
+
   return User.findByIdAndUpdate(
     id,
     { activo },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 }
 

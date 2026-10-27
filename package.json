@@ -5,9 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --runInBand",
-    "test:unit": "jest --runInBand tests/unit",
-    "test:integration": "jest --runInBand tests/integration",
+    "seed:admin": "node scripts/seedAdmin.js",
+    "migrate:roles": "node scripts/migrateRoles.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand tests/unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand tests/integration",
     "test:postman": "newman run postman/collections/stockflowapi.postman_collection.json -e postman/environments/local.postman_environment.json --reporters cli"
   },
   "keywords": [],

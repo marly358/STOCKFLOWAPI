@@ -25,6 +25,10 @@ const productoSchema = new mongoose.Schema({
       message: 'El stock debe ser un número entero.',
     },
   },
+  activo: {
+    type: Boolean,
+    default: true,
+  },
   descripcion: {
     type: String,
     trim: true,

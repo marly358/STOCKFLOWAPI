@@ -6,6 +6,11 @@ const movimientoSchema = new mongoose.Schema({
     ref: 'Producto',
     required: [true, 'El producto es obligatorio.'],
   },
+  responsable: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'El responsable del movimiento es obligatorio.'],
+  },
   tipo: {
     type: String,
     enum: {

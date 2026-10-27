@@ -1,9 +1,12 @@
 const express = require('express');
-const { crear, consultar } = require('../controllers/categoriaController');
+const { crear, consultar, actualizar, eliminar } = require('../controllers/categoriaController');
+const { autenticarUsuario, autorizarRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', consultar);
-router.post('/', crear);
+router.get('/', autenticarUsuario, consultar);
+router.post('/', autenticarUsuario, autorizarRoles('admin'), crear);
+router.patch('/:id', autenticarUsuario, autorizarRoles('admin'), actualizar);
+router.delete('/:id', autenticarUsuario, autorizarRoles('admin'), eliminar);
 
 module.exports = router;
