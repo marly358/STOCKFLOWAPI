@@ -184,3 +184,29 @@ npx newman run postman/collections/stockflowapi.postman_collection.json \
 El comando `npm run test:postman` está preparado para reutilizarse en GitHub
 Actions; la integración con un workflow queda para la tarea coordinada
 FLOW123-40.
+
+## Pruebas automatizadas con Jest
+
+Instala las dependencias con `npm install` y ejecuta:
+
+```sh
+npm test
+npm run test:unit
+npm run test:integration
+```
+
+La suite de integración levanta una instancia efímera de MongoDB como replica
+set en memoria para poder probar las transacciones de inventario. No utiliza
+`MONGO_URI`, Atlas ni datos persistentes de desarrollo o producción. La primera
+ejecución puede descargar el binario de MongoDB requerido por
+`mongodb-memory-server`; se necesita acceso al binario local o a Internet.
+Los scripts de integración ejecutan Jest con el soporte de módulos VM requerido
+por la versión actual del driver de MongoDB.
+
+Los tests de `tests/unit/controllers.test.js` aplican **top-down**: prueban
+controladores, que son componentes de nivel superior, aislando los servicios
+inferiores con mocks y verificando validaciones y respuestas HTTP. Los tests de
+`tests/unit/models.test.js` y `tests/unit/movimientoService.test.js` aplican
+**bottom-up**: validan primero reglas de modelos y transacciones de servicio, y
+`tests/integration/api.test.js` después comprueba su integración real con rutas,
+controladores y MongoDB efímero mediante Supertest.
