@@ -46,9 +46,9 @@ describe('controladores (top-down: servicios aislados con mocks)', () => {
   });
 
   test('crea un producto válido y responde 201', async () => {
-    const producto = { _id: 'p1', nombre: 'Teclado', precio: 20, stock: 4 };
+    const producto = { _id: 'p1', nombre: 'Teclado', precio: 20, stock: 0 };
     productoService.registrarProducto.mockResolvedValue(producto);
-    const req = { body: { nombre: 'Teclado', precio: 20, stock: 4 } };
+    const req = { body: { nombre: 'Teclado', precio: 20 } };
     const res = respuestaFalsa();
 
     await crearProducto(req, res, jest.fn());
@@ -59,6 +59,26 @@ describe('controladores (top-down: servicios aislados con mocks)', () => {
       message: 'Producto registrado correctamente.',
       producto,
     });
+  });
+
+  test('rechaza stock directo al crear o actualizar un producto', async () => {
+    const createRes = respuestaFalsa();
+    await crearProducto(
+      { body: { nombre: 'Teclado', precio: 20, stock: 4 } },
+      createRes,
+      jest.fn()
+    );
+    const updateRes = respuestaFalsa();
+    await actualizarProducto(
+      { params: { id: '507f1f77bcf86cd799439011' }, body: { stock: 4 } },
+      updateRes,
+      jest.fn()
+    );
+
+    expect(createRes.status).toHaveBeenCalledWith(400);
+    expect(updateRes.status).toHaveBeenCalledWith(400);
+    expect(productoService.registrarProducto).not.toHaveBeenCalled();
+    expect(productoService.actualizarProductoPorId).not.toHaveBeenCalled();
   });
 
   test('rechaza identificadores inválidos al actualizar', async () => {
@@ -109,7 +129,10 @@ describe('controladores (top-down: servicios aislados con mocks)', () => {
     const res = respuestaFalsa();
 
     await registrarSalida(
-      { body: { productoId: '507f1f77bcf86cd799439011', cantidad: 2 } },
+      {
+        body: { productoId: '507f1f77bcf86cd799439011', cantidad: 2 },
+        user: { id: '507f191e810c19729de860ea' },
+      },
       res,
       jest.fn()
     );
@@ -117,7 +140,8 @@ describe('controladores (top-down: servicios aislados con mocks)', () => {
     expect(movimientoService.registrarMovimiento).toHaveBeenCalledWith(
       '507f1f77bcf86cd799439011',
       2,
-      'SALIDA'
+      'SALIDA',
+      '507f191e810c19729de860ea'
     );
     expect(res.status).toHaveBeenCalledWith(409);
   });

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
@@ -26,12 +27,31 @@ async function autenticarUsuario(req, res, next) {
     return res.status(500).json({ message: 'La variable de entorno JWT_SECRET no está definida.' });
   }
 
+  let payload;
   try {
-    const payload = jwt.verify(token, jwtSecret);
+    payload = jwt.verify(token, jwtSecret);
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expirado.' });
+    }
+
+    return res.status(401).json({ message: 'Token inválido.' });
+  }
+
+  if (!payload || typeof payload !== 'object' ||
+      typeof payload.sub !== 'string' ||
+      !mongoose.isObjectIdOrHexString(payload.sub)) {
+    return res.status(401).json({ message: 'Token inválido.' });
+  }
+
+  try {
     const usuario = await User.findById(payload.sub).lean();
 
     if (!usuario || !usuario.activo) {
       return res.status(401).json({ message: 'Usuario no encontrado o inactivo.' });
+    }
+    if (!['admin', 'bodeguero'].includes(usuario.role)) {
+      return res.status(401).json({ message: 'El rol de usuario no es válido; ejecute la migración de roles.' });
     }
 
     req.user = {
@@ -42,11 +62,7 @@ async function autenticarUsuario(req, res, next) {
 
     return next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expirado.' });
-    }
-
-    return res.status(401).json({ message: 'Token inválido.' });
+    return next(error);
   }
 }
 

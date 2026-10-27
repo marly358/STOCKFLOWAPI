@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const {
   listarUsuarios,
+  crearUsuario,
+  buscarUsuarioPorEmail,
   obtenerUsuarioPorId,
   actualizarUsuarioPorId,
   cambiarPasswordPorId,
@@ -37,6 +39,63 @@ function validarDatosActualizacion(datos) {
   return errores;
 }
 
+function validarDatosCreacion(datos) {
+  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+    return ['El cuerpo de la solicitud debe ser un objeto JSON.'];
+  }
+
+  const errores = [];
+  const permitidos = ['nombre', 'email', 'password'];
+  const desconocidos = Object.keys(datos).filter((campo) => !permitidos.includes(campo));
+
+  if (desconocidos.length > 0) {
+    errores.push(`Campos no permitidos: ${desconocidos.join(', ')}.`);
+  }
+  if (typeof datos.nombre !== 'string' || datos.nombre.trim().length < 2) {
+    errores.push('El nombre es obligatorio y debe tener al menos 2 caracteres.');
+  }
+  if (typeof datos.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email.trim())) {
+    errores.push('El correo no tiene un formato válido.');
+  }
+  if (!validarPassword(datos.password)) {
+    errores.push('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.');
+  }
+
+  return errores;
+}
+
+async function crearBodeguero(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Solo un administrador puede crear usuarios.' });
+  }
+
+  const errores = validarDatosCreacion(req.body);
+  if (errores.length > 0) {
+    return res.status(400).json({
+      message: 'Los datos del usuario no son válidos.',
+      errors: errores,
+    });
+  }
+
+  try {
+    if (await buscarUsuarioPorEmail(req.body.email)) {
+      return res.status(409).json({ message: 'Ya existe un usuario registrado con ese correo.' });
+    }
+
+    const usuario = await crearUsuario({
+      nombre: req.body.nombre,
+      email: req.body.email,
+      password: req.body.password,
+    });
+    return res.status(201).json({ message: 'Bodeguero creado correctamente.', usuario });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'Ya existe un usuario registrado con ese correo.' });
+    }
+    return next(error);
+  }
+}
+
 async function consultarUsuarios(req, res, next) {
   try {
     const usuarios = await listarUsuarios();
@@ -51,16 +110,15 @@ async function consultarUsuarioPorId(req, res, next) {
     return res.status(400).json({ message: 'El identificador del usuario no es válido.' });
   }
 
+  if (req.user.role !== 'admin' && req.user.id !== req.params.id.toLowerCase()) {
+    return res.status(403).json({ message: 'No tienes permisos para consultar este usuario.' });
+  }
+
   try {
     const usuario = await obtenerUsuarioPorId(req.params.id);
     if (!usuario) {
       return res.status(404).json({ message: 'Usuario no encontrado.' });
     }
-
-    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
-      return res.status(403).json({ message: 'No tienes permisos para consultar este usuario.' });
-    }
-
     return res.status(200).json(usuario);
   } catch (error) {
     return next(error);
@@ -72,7 +130,7 @@ async function actualizarUsuario(req, res, next) {
     return res.status(400).json({ message: 'El identificador del usuario no es válido.' });
   }
 
-  if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+  if (req.user.role !== 'admin' && req.user.id !== req.params.id.toLowerCase()) {
     return res.status(403).json({ message: 'No tienes permisos para modificar este usuario.' });
   }
 
@@ -112,12 +170,13 @@ async function cambiarPassword(req, res, next) {
     return res.status(400).json({ message: 'El identificador del usuario no es válido.' });
   }
 
-  if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+  const esPropiaCuenta = req.user.id === req.params.id.toLowerCase();
+  if (req.user.role !== 'admin' && !esPropiaCuenta) {
     return res.status(403).json({ message: 'No tienes permisos para cambiar la contraseña de este usuario.' });
   }
 
   const { currentPassword, newPassword } = req.body || {};
-  const requierePasswordActual = req.user.role !== 'admin' || req.user.id === req.params.id;
+  const requierePasswordActual = req.user.role !== 'admin' || esPropiaCuenta;
 
   if (requierePasswordActual && !currentPassword) {
     return res.status(400).json({ message: 'La contraseña actual es obligatoria.' });
@@ -162,7 +221,14 @@ async function desactivarUsuario(req, res, next) {
     return res.status(403).json({ message: 'Solo un administrador puede desactivar cuentas.' });
   }
 
-  const { activo } = req.body || { activo: false };
+  const body = req.body || {};
+  const activo = Object.prototype.hasOwnProperty.call(body, 'activo') ? body.activo : false;
+  if (typeof activo !== 'boolean' || Object.keys(body).some((key) => key !== 'activo')) {
+    return res.status(400).json({ message: 'El cuerpo solo puede incluir el estado activo como valor booleano.' });
+  }
+  if (!activo && req.user.id === req.params.id.toLowerCase()) {
+    return res.status(400).json({ message: 'No puedes desactivar tu propia cuenta de administrador.' });
+  }
 
   try {
     const usuario = await desactivarUsuarioPorId(req.params.id, Boolean(activo));
@@ -180,6 +246,7 @@ async function desactivarUsuario(req, res, next) {
 }
 
 module.exports = {
+  crearBodeguero,
   consultarUsuarios,
   consultarUsuarioPorId,
   actualizarUsuario,

@@ -1,212 +1,172 @@
 # STOCKFLOWAPI
-Repositorio para practica 
 
-## Actualizar un producto
+API REST para administrar productos, categorías, usuarios e inventario con
+Express y MongoDB/Mongoose.
 
-La ruta `PATCH /api/productos/:id` actualiza parcialmente un producto existente. Se
-pueden enviar uno o más de los campos `nombre`, `precio`, `stock` y `descripcion`.
-Por ejemplo:
+## Instalación y configuración
 
-```http
-PATCH http://localhost:3000/api/productos/665f1a2b3c4d5e6f78901234
-Content-Type: application/json
+Requisitos: Node.js 20.19 o posterior, npm y una instancia de MongoDB compatible
+con transacciones (replica set o clúster sharded).
 
-{
-  "precio": 19.99,
-  "stock": 25
-}
+```powershell
+npm ci
+Copy-Item .env.example .env
 ```
 
+Completa `.env` localmente. No guardes credenciales reales en el repositorio:
 
-## Gestionar categorías
+| Variable | Descripción |
+| --- | --- |
+| `MONGO_URI` | Cadena de conexión a la base de datos de desarrollo. |
+| `PORT` | Puerto HTTP; por defecto `3000`. |
+| `JWT_SECRET` | Secreto aleatorio y privado para firmar tokens. |
+| `JWT_EXPIRES_IN` | Vigencia del JWT; por defecto `1h`. |
+| `ADMIN_NAME` | Nombre para crear el administrador inicial. |
+| `ADMIN_EMAIL` | Correo normalizado del administrador inicial. |
+| `ADMIN_PASSWORD` | Contraseña inicial fuerte; no se registra en logs. |
 
-`POST /api/categorias` crea una categoría. El campo `nombre` es obligatorio; `descripcion` es opcional.
+Inicia la API con `npm start`. La conexión es necesaria para arrancar el
+servidor.
 
-```http
-POST http://localhost:3000/api/categorias
-Content-Type: application/json
+## Administrador inicial y cuentas
 
-{
-  "nombre": "Bebidas",
-  "descripcion": "Productos de bebidas"
-}
+El registro público está deshabilitado. Inicializa el primer administrador de
+forma explícita después de configurar las variables anteriores:
+
+```powershell
+npm run seed:admin
 ```
 
-`GET /api/categorias` devuelve las categorías registradas como un arreglo JSON.
+El seed es idempotente: si ya existe un administrador con ese correo, no lo
+duplica ni cambia su contraseña. Si el correo ya pertenece a una cuenta que no
+es administrador, el seed informa el conflicto en lugar de elevar privilegios.
+Solo ADMIN puede crear cuentas de bodeguero desde `POST /api/users`; el cuerpo
+acepta `nombre`, `email` y `password`, nunca `role`.
 
-## Gestionar inventario
+Si la base contiene usuarios de la versión anterior con rol `usuario`, ejecuta
+una vez la migración explícita antes de habilitar la nueva versión:
 
-Los movimientos se registran dentro de transacciones MongoDB para actualizar el
-stock y guardar el movimiento de forma consistente. La base de datos debe
-soportar transacciones (como MongoDB Atlas en un replica set o clúster
-sharded); si no las admite, la operación falla sin aplicar cambios parciales.
+```powershell
+npm run migrate:roles
+```
 
-`POST /api/inventario/entradas` registra una entrada y aumenta el stock:
+La migración convierte únicamente ese rol heredado a `bodeguero`. No cambia
+cuentas `admin`. Revisa primero que `MONGO_URI` apunte a la base correcta.
+
+## Autenticación, roles y permisos
+
+Inicia sesión con `POST /api/auth/login` enviando correo y contraseña. La
+respuesta contiene un JWT; úsalo en rutas privadas como
+`Authorization: Bearer <token>`. `GET /api/auth/me` devuelve la identidad
+vigente del token. Cada solicitud protegida vuelve a comprobar en la base de
+datos que la cuenta existe y sigue activa.
+
+Los únicos roles de aplicación son `admin` y `bodeguero`.
+
+| Operación | ADMIN | BODEGUERO |
+| --- | :---: | :---: |
+| Iniciar sesión y consultar su perfil | Sí | Sí |
+| Crear y administrar cuentas | Sí | No |
+| Consultar productos y categorías | Sí | Sí |
+| Crear, editar y eliminar productos/categorías | Sí | No |
+| Consultar existencias e historial | Sí | Sí |
+| Registrar entradas y salidas | Sí | Sí |
+
+Los bodegueros pueden consultar y actualizar sus propios datos permitidos y
+cambiar su contraseña proporcionando la actual; no pueden administrar otras
+cuentas. El administrador puede restablecer la contraseña de otra cuenta. El
+rol y el estado de una cuenta no se cambian mediante la actualización ordinaria
+de datos. Un administrador no puede desactivarse a sí mismo.
+
+## Rutas
+
+Todas las rutas de API que no sean login están protegidas según la matriz
+anterior. `POST /api/auth/register` responde `403`; no crea cuentas.
+
+| Método | Ruta | Permiso | Resultado |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/login` | Público | Emite un JWT con credenciales válidas. |
+| `GET` | `/api/auth/me` | Autenticado | Perfil del usuario autenticado. |
+| `POST` | `/api/users` | ADMIN | Crea un bodeguero. |
+| `GET` | `/api/users` | ADMIN | Lista usuarios sin hashes ni campos internos. |
+| `GET` | `/api/users/:id` | ADMIN o propietario | Consulta un usuario autorizado. |
+| `PATCH` | `/api/users/:id` | ADMIN o propietario | Actualiza solo `nombre` y `email`. |
+| `PATCH` | `/api/users/:id/password` | ADMIN o propietario | Cambia/restablece la contraseña. |
+| `PATCH` | `/api/users/:id/desactivar` | ADMIN | Activa/desactiva con `{ "activo": true/false }`. |
+| `GET` | `/api/productos` | ADMIN, BODEGUERO | Lista productos; BODEGUERO solo ve activos. |
+| `GET` | `/api/productos/:id` | ADMIN, BODEGUERO | Consulta un producto disponible para el rol. |
+| `POST` | `/api/productos` | ADMIN | Crea producto con stock inicial cero. |
+| `PATCH` | `/api/productos/:id` | ADMIN | Actualiza `nombre`, `precio` o `descripcion`. |
+| `DELETE` | `/api/productos/:id` | ADMIN | Elimina físicamente o desactiva si tiene historial. |
+| `GET` | `/api/categorias` | ADMIN, BODEGUERO | Lista categorías. |
+| `POST` | `/api/categorias` | ADMIN | Crea categoría con nombre normalizado único. |
+| `PATCH` | `/api/categorias/:id` | ADMIN | Actualiza nombre o descripción. |
+| `DELETE` | `/api/categorias/:id` | ADMIN | Elimina una categoría. |
+| `GET` | `/api/inventario/existencias` | ADMIN, BODEGUERO | Existencias de productos activos. |
+| `GET` | `/api/inventario/movimientos` | ADMIN, BODEGUERO | Historial con producto y responsable sin datos sensibles. |
+| `POST` | `/api/inventario/entradas` | ADMIN, BODEGUERO | Registra una entrada y suma al stock. |
+| `POST` | `/api/inventario/salidas` | ADMIN, BODEGUERO | Registra una salida si hay stock suficiente. |
+
+No existe una relación entre productos y categorías en el modelo actual. Por
+eso, la eliminación de categoría no borra ni afecta productos.
+
+## Reglas de inventario
+
+El cliente no puede enviar `stock` al crear o actualizar un producto: la API
+responde `400`. Las existencias solo cambian mediante movimientos. Para crear
+un stock inicial, primero crea el producto y registra una entrada:
 
 ```http
-POST http://localhost:3000/api/inventario/entradas
+POST /api/inventario/entradas
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "productoId": "665f1a2b3c4d5e6f78901234",
+  "productoId": "<id del producto>",
   "cantidad": 10
 }
 ```
 
-`POST /api/inventario/salidas` registra una salida y disminuye el stock. Si no
-hay existencias suficientes, devuelve `409 Conflict` y no registra el
-movimiento.
+La cantidad debe ser un entero positivo. La fecha y el responsable autenticado
+son asignados por el servidor; enviar campos adicionales se rechaza. Cada
+movimiento y su cambio de stock se guardan en una transacción. Las salidas usan
+una condición atómica de stock disponible; si no alcanza, la API responde
+`409 Conflict` sin movimiento ni cambio parcial. Un producto desactivado no
+admite nuevas operaciones.
 
-```http
-POST http://localhost:3000/api/inventario/salidas
-Content-Type: application/json
+Al eliminar un producto sin movimientos asociados, se elimina físicamente. Si
+tiene historial, se desactiva y se conserva junto con sus movimientos para
+mantener la trazabilidad; queda excluido de las consultas y movimientos
+ordinarios de bodegueros.
 
-{
-  "productoId": "665f1a2b3c4d5e6f78901234",
-  "cantidad": 2
-}
-```
+## Pruebas
 
-Ambos endpoints devuelven `201 Created` con el movimiento y el producto
-actualizado. La cantidad debe ser un entero positivo; `productoId` debe
-identificar un producto existente.
+Jest ejecuta las pruebas unitarias y de integración:
 
-`GET /api/inventario/existencias` devuelve las existencias actuales como una
-lista JSON, que será `[]` si todavía no hay productos:
-
-```http
-GET http://localhost:3000/api/inventario/existencias
-```
-
-Cada elemento contiene el identificador del producto, su nombre y el stock
-actual, por ejemplo:
-
-```json
-[
-  {
-    "_id": "665f1a2b3c4d5e6f78901234",
-    "nombre": "Producto de ejemplo",
-    "stock": 8
-  }
-]
-```
-
-## Eliminar un producto
-
-La ruta `DELETE /api/productos/:id` elimina el producto cuyo identificador
-MongoDB se indica en la URL. Si se elimina, responde `200` con un mensaje y el
-producto eliminado. Un identificador inválido responde `400`; si no existe un
-producto con ese ID, responde `404`.
-
-Ejemplo:
-
-```http
-DELETE http://localhost:3000/api/productos/665f1a2b3c4d5e6f78901234
-```
-
-Respuesta al eliminar:
-
-```json
-{
-  "message": "Producto eliminado correctamente.",
-  "producto": {
-    "_id": "665f1a2b3c4d5e6f78901234",
-    "nombre": "Producto de ejemplo",
-    "precio": 19.99,
-    "stock": 25
-  }
-}
-```
-
-Los movimientos de inventario guardan una referencia al producto. Esta
-operación elimina únicamente el producto y no elimina los movimientos
-relacionados.
-
-## Pruebas de integración con Postman y Newman
-
-La colección exportable está en
-`postman/collections/stockflowapi.postman_collection.json` y el entorno local
-en `postman/environments/local.postman_environment.json`. La colección cubre
-el estado de la API, productos, categorías y movimientos de inventario,
-incluidas validaciones de entradas inválidas y recursos inexistentes.
-
-### Requisitos
-
-- Node.js y las dependencias del proyecto instaladas (`npm install`).
-- Una instancia de MongoDB Atlas o MongoDB compatible con transacciones
-  configurada mediante `MONGO_URI` en el archivo `.env` local. No copies
-  credenciales al entorno ni a la colección.
-- El servidor iniciado en `http://localhost:3000`, que es el valor inicial de
-  `baseUrl` en el entorno local.
-
-La colección crea registros de prueba con nombres únicos. El producto usado
-para el CRUD se elimina al completar su flujo. El producto empleado en los
-movimientos y la categoría se conservan: los movimientos guardados referencian
-su producto y la API no ofrece endpoints para eliminar movimientos ni
-categorías. Ejecuta las pruebas preferiblemente en una base de datos de
-desarrollo o pruebas.
-
-### Ejecución en Postman
-
-1. Inicia el backend con `npm start`.
-2. En Postman, importa la colección y el archivo de entorno local indicados
-   arriba.
-3. Selecciona el entorno **STOCKFLOWAPI - Local** y confirma que `baseUrl`
-   apunte al servidor.
-4. Ejecuta la colección completa en Collection Runner, en el orden definido.
-   Las solicitudes usan variables de colección para compartir los IDs
-   generados durante la ejecución.
-
-### Ejecución con Newman
-
-Instala las dependencias del proyecto (Newman está declarado como dependencia
-de desarrollo) y ejecuta:
-
-```bash
-npm install
-npm start
-```
-
-En otra terminal, desde la raíz del repositorio:
-
-```bash
-npm run test:postman
-```
-
-El comando usa la colección y el entorno locales. También se puede ejecutar
-Newman directamente:
-
-```bash
-npx newman run postman/collections/stockflowapi.postman_collection.json \
-  --environment postman/environments/local.postman_environment.json
-```
-
-El comando `npm run test:postman` está preparado para reutilizarse en GitHub
-Actions; la integración con un workflow queda para la tarea coordinada
-FLOW123-40.
-
-## Pruebas automatizadas con Jest
-
-Instala las dependencias con `npm install` y ejecuta:
-
-```sh
+```powershell
 npm test
 npm run test:unit
 npm run test:integration
 ```
 
-La suite de integración levanta una instancia efímera de MongoDB como replica
-set en memoria para poder probar las transacciones de inventario. No utiliza
-`MONGO_URI`, Atlas ni datos persistentes de desarrollo o producción. La primera
-ejecución puede descargar el binario de MongoDB requerido por
-`mongodb-memory-server`; se necesita acceso al binario local o a Internet.
-Los scripts de integración ejecutan Jest con el soporte de módulos VM requerido
-por la versión actual del driver de MongoDB.
+Las pruebas de inventario requieren un MongoDB en replica set porque usan
+transacciones. `tests/integration/api.test.js` utiliza MongoDB Memory Server
+configurado como replica set; la primera ejecución puede requerir descargar su
+binario. Las pruebas no deben usar la base de desarrollo.
 
-Los tests de `tests/unit/controllers.test.js` aplican **top-down**: prueban
-controladores, que son componentes de nivel superior, aislando los servicios
-inferiores con mocks y verificando validaciones y respuestas HTTP. Los tests de
-`tests/unit/models.test.js` y `tests/unit/movimientoService.test.js` aplican
-**bottom-up**: validan primero reglas de modelos y transacciones de servicio, y
-`tests/integration/api.test.js` después comprueba su integración real con rutas,
-controladores y MongoDB efímero mediante Supertest.
+La colección Postman existente está en
+`postman/collections/stockflowapi.postman_collection.json` y el entorno en
+`postman/environments/local.postman_environment.json`. Newman requiere que la
+API esté ejecutándose con una base local/de pruebas, que el seed haya creado
+el administrador y que `adminEmail` y `adminPassword` se configuren en el
+entorno de Postman sin guardar credenciales reales en el archivo versionado.
+`bodegueroPassword` es una contraseña de fixture local configurable; no la
+reutilices en otros entornos.
+Las pruebas generan nombres e identificadores únicos. La colección limpia los
+productos sin historial y la categoría de prueba; el producto con movimientos
+se conserva desactivado para preservar trazabilidad. Evita ejecutar Newman
+contra producción.
+
+```powershell
+npm run test:postman
+```

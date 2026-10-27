@@ -1,6 +1,7 @@
 const Categoria = require('../../models/Categoria');
 const Movimiento = require('../../models/Movimiento');
 const Producto = require('../../models/Producto');
+const User = require('../../models/User');
 
 describe('modelos Mongoose (bottom-up: validación de componentes)', () => {
   test('acepta un producto válido y rechaza stock fraccionario', async () => {
@@ -19,6 +20,24 @@ describe('modelos Mongoose (bottom-up: validación de componentes)', () => {
     await categoria.validate();
 
     expect(categoria.nombreNormalizado).toBe('café');
+  });
+
+  test('limita roles a admin y bodeguero', async () => {
+    const bodeguero = new User({
+      nombre: 'Bodega',
+      email: 'bodega@example.com',
+      passwordHash: 'ClaveSegura123',
+    });
+    await bodeguero.validate();
+    expect(bodeguero.role).toBe('bodeguero');
+
+    const rolAnterior = new User({
+      nombre: 'Anterior',
+      email: 'anterior@example.com',
+      passwordHash: 'ClaveSegura123',
+      role: 'usuario',
+    });
+    await expect(rolAnterior.validate()).rejects.toHaveProperty('errors.role');
   });
 
   test('rechaza movimientos con tipo o cantidad inválidos', async () => {

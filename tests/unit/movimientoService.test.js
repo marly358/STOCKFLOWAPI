@@ -28,39 +28,53 @@ describe('servicio de inventario (bottom-up: reglas transaccionales aisladas)', 
   test('incrementa stock y guarda una entrada en una transacción', async () => {
     const producto = { _id: 'producto-1', stock: 7 };
     const movimiento = { tipo: 'ENTRADA', cantidad: 2 };
+    const productoId = '507f1f77bcf86cd799439011';
+    const responsableId = '507f191e810c19729de860ea';
     Producto.findOneAndUpdate.mockResolvedValue(producto);
     Movimiento.create.mockResolvedValue([movimiento]);
 
-    await expect(registrarMovimiento('producto-1', 2, 'ENTRADA')).resolves.toEqual({
+    await expect(registrarMovimiento(productoId, 2, 'ENTRADA', responsableId)).resolves.toEqual({
       movimiento,
       producto,
     });
 
     expect(Producto.findOneAndUpdate).toHaveBeenCalledWith(
-      { _id: 'producto-1' },
+      { _id: productoId, activo: { $ne: false } },
       { $inc: { stock: 2 } },
-      { new: true, session }
+      { returnDocument: 'after', session }
     );
     expect(Movimiento.create).toHaveBeenCalledWith(
-      [{ producto: 'producto-1', tipo: 'ENTRADA', cantidad: 2 }],
+      [{ producto: productoId, tipo: 'ENTRADA', cantidad: 2, responsable: responsableId }],
       { session }
     );
     expect(session.endSession).toHaveBeenCalled();
   });
 
   test('condiciona la salida a stock suficiente y termina la sesión en error', async () => {
+    const productoId = '507f1f77bcf86cd799439011';
+    const responsableId = '507f191e810c19729de860ea';
     Producto.findOneAndUpdate.mockResolvedValue(null);
 
-    await expect(registrarMovimiento('producto-1', 5, 'SALIDA')).rejects.toMatchObject({
+    await expect(registrarMovimiento(productoId, 5, 'SALIDA', responsableId)).rejects.toMatchObject({
       code: 'INVENTORY_INSUFFICIENT_STOCK',
     });
 
     expect(Producto.findOneAndUpdate).toHaveBeenCalledWith(
-      { _id: 'producto-1', stock: { $gte: 5 } },
+      { _id: productoId, activo: { $ne: false }, stock: { $gte: 5 } },
       { $inc: { stock: -5 } },
-      { new: true, session }
+      { returnDocument: 'after', session }
     );
     expect(Movimiento.create).not.toHaveBeenCalled();
     expect(session.endSession).toHaveBeenCalled();
+  });
+
+  test('rechaza datos de movimiento inválidos antes de iniciar una transacción', async () => {
+    await expect(registrarMovimiento(
+      '507f1f77bcf86cd799439011',
+      1.5,
+      'ENTRADA',
+      '507f191e810c19729de860ea'
+    )).rejects.toMatchObject({ code: 'INVENTORY_INVALID_INPUT' });
+    expect(mongoose.startSession).not.toHaveBeenCalled();
   });
 });
