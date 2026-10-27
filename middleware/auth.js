@@ -1,0 +1,70 @@
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+
+function getTokenFromHeader(authorizationHeader) {
+  if (!authorizationHeader || typeof authorizationHeader !== 'string') {
+    return null;
+  }
+
+  const [scheme, token] = authorizationHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) {
+    return null;
+  }
+
+  return token;
+}
+
+async function autenticarUsuario(req, res, next) {
+  const token = getTokenFromHeader(req.headers.authorization);
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token de autenticación requerido.' });
+  }
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return res.status(500).json({ message: 'La variable de entorno JWT_SECRET no está definida.' });
+  }
+
+  try {
+    const payload = jwt.verify(token, jwtSecret);
+    const usuario = await User.findById(payload.sub).lean();
+
+    if (!usuario || !usuario.activo) {
+      return res.status(401).json({ message: 'Usuario no encontrado o inactivo.' });
+    }
+
+    req.user = {
+      id: usuario._id.toString(),
+      email: usuario.email,
+      role: usuario.role,
+    };
+
+    return next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expirado.' });
+    }
+
+    return res.status(401).json({ message: 'Token inválido.' });
+  }
+}
+
+function autorizarRoles(...rolesPermitidos) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Debe autenticarse para acceder a este recurso.' });
+    }
+
+    if (!rolesPermitidos.includes(req.user.role)) {
+      return res.status(403).json({ message: 'No tienes permisos suficientes para esta operación.' });
+    }
+
+    return next();
+  };
+}
+
+module.exports = {
+  autenticarUsuario,
+  autorizarRoles,
+};

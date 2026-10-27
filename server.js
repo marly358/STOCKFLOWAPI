@@ -3,25 +3,45 @@ if (require.main === module) {
 }
 
 const express = require('express');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const productoRoutes = require('./routes/productoRoutes');
 const categoriaRoutes = require('./routes/categoriaRoutes');
 const movimientoRoutes = require('./routes/movimientoRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
-// Puerto configurable mediante variable de entorno (fallback a 3000).
 const PORT = process.env.PORT || 3000;
 
+app.disable('x-powered-by');
+app.use(cors());
 app.use(express.json());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    message: 'Demasiadas peticiones recibidas desde esta IP, intenta nuevamente más tarde.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'StockFlowAPI' });
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/productos', productoRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/inventario', movimientoRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ message: 'Ruta no encontrada.' });
+});
 
 app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') {
@@ -34,7 +54,6 @@ app.use((error, req, res, next) => {
   return res.status(500).json({ message: 'Error interno del servidor.' });
 });
 
-// El servidor solo empieza a escuchar una vez establecida la conexión con MongoDB.
 async function startServer() {
   try {
     await connectDB();

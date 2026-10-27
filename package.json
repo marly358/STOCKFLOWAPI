@@ -5,17 +5,21 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:postman": "newman run postman/collections/stockflowapi.postman_collection.json -e postman/environments/local.postman_environment.json",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test": "jest --runInBand",
     "test:unit": "jest --runInBand tests/unit",
-    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand tests/integration"
+    "test:integration": "jest --runInBand tests/integration",
+    "test:postman": "newman run postman/collections/stockflowapi.postman_collection.json -e postman/environments/local.postman_environment.json --reporters cli"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^18.0.6",
     "express": "^4.22.3",
+    "express-rate-limit": "^8.7.1",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.1"
   },
   "devDependencies": {
