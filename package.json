@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:postman": "newman run postman/collections/stockflowapi.postman_collection.json -e postman/environments/local.postman_environment.json"
+    "test:postman": "newman run postman/collections/stockflowapi.postman_collection.json -e postman/environments/local.postman_environment.json",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "jest --runInBand tests/unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand tests/integration"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +19,9 @@
     "mongoose": "^9.11.1"
   },
   "devDependencies": {
-    "newman": "^6.2.3"
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^10.4.3",
+    "newman": "^6.2.3",
+    "supertest": "^7.3.1"
   }
 }

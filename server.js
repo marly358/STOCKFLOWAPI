@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (require.main === module) {
+  require('dotenv').config();
+}
 
 const express = require('express');
 const connectDB = require('./config/db');
@@ -46,4 +48,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
