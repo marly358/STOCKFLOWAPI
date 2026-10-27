@@ -118,6 +118,69 @@ Respuesta al eliminar:
 }
 ```
 
-Actualmente el proyecto no define movimientos de inventario ni referencias
-entre movimientos y productos. Por eso, esta operación elimina únicamente el
-producto y no realiza borrados en cascada.
+Los movimientos de inventario guardan una referencia al producto. Esta
+operación elimina únicamente el producto y no elimina los movimientos
+relacionados.
+
+## Pruebas de integración con Postman y Newman
+
+La colección exportable está en
+`postman/collections/stockflowapi.postman_collection.json` y el entorno local
+en `postman/environments/local.postman_environment.json`. La colección cubre
+el estado de la API, productos, categorías y movimientos de inventario,
+incluidas validaciones de entradas inválidas y recursos inexistentes.
+
+### Requisitos
+
+- Node.js y las dependencias del proyecto instaladas (`npm install`).
+- Una instancia de MongoDB Atlas o MongoDB compatible con transacciones
+  configurada mediante `MONGO_URI` en el archivo `.env` local. No copies
+  credenciales al entorno ni a la colección.
+- El servidor iniciado en `http://localhost:3000`, que es el valor inicial de
+  `baseUrl` en el entorno local.
+
+La colección crea registros de prueba con nombres únicos. El producto usado
+para el CRUD se elimina al completar su flujo. El producto empleado en los
+movimientos y la categoría se conservan: los movimientos guardados referencian
+su producto y la API no ofrece endpoints para eliminar movimientos ni
+categorías. Ejecuta las pruebas preferiblemente en una base de datos de
+desarrollo o pruebas.
+
+### Ejecución en Postman
+
+1. Inicia el backend con `npm start`.
+2. En Postman, importa la colección y el archivo de entorno local indicados
+   arriba.
+3. Selecciona el entorno **STOCKFLOWAPI - Local** y confirma que `baseUrl`
+   apunte al servidor.
+4. Ejecuta la colección completa en Collection Runner, en el orden definido.
+   Las solicitudes usan variables de colección para compartir los IDs
+   generados durante la ejecución.
+
+### Ejecución con Newman
+
+Instala las dependencias del proyecto (Newman está declarado como dependencia
+de desarrollo) y ejecuta:
+
+```bash
+npm install
+npm start
+```
+
+En otra terminal, desde la raíz del repositorio:
+
+```bash
+npm run test:postman
+```
+
+El comando usa la colección y el entorno locales. También se puede ejecutar
+Newman directamente:
+
+```bash
+npx newman run postman/collections/stockflowapi.postman_collection.json \
+  --environment postman/environments/local.postman_environment.json
+```
+
+El comando `npm run test:postman` está preparado para reutilizarse en GitHub
+Actions; la integración con un workflow queda para la tarea coordinada
+FLOW123-40.
