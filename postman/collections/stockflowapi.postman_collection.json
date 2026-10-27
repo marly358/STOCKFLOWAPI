@@ -1,0 +1,696 @@
+{
+  "info": {
+    "_postman_id": "8bcd5899-f5ef-46f7-81a2-bc54ca4bd9f4",
+    "name": "STOCKFLOWAPI",
+    "description": "Pruebas de integración ordenadas para los endpoints implementados de STOCKFLOWAPI. Ejecutar la colección completa contra una base de datos de pruebas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Estado de la API",
+      "item": [
+        {
+          "name": "Consultar estado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('devuelve JSON con el estado del servicio', function () { pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.status).to.eql('ok'); pm.expect(body.service).to.eql('StockFlowAPI'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con una lista JSON', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto de prueba",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset('productId');",
+                  "pm.collectionVariables.unset('inventoryProductId');",
+                  "pm.collectionVariables.unset('categoryId');",
+                  "const runId = pm.variables.replaceIn('{{$guid}}').replace(/-/g, '');",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('crudProductName', `Newman CRUD ${runId}`);",
+                  "pm.collectionVariables.set('inventoryProductName', `Newman inventario ${runId}`);",
+                  "pm.collectionVariables.set('categoryName', `Newman categoría ${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 con el producto creado', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Producto registrado correctamente.'); pm.expect(body.producto).to.be.an('object'); pm.expect(body.producto._id).to.be.a('string'); pm.expect(body.producto.nombre).to.eql(pm.collectionVariables.get('crudProductName')); pm.expect(body.producto.precio).to.eql(12.5); pm.expect(body.producto.stock).to.eql(10); pm.collectionVariables.set('productId', body.producto._id); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{crudProductName}}\",\n  \"precio\": 12.5,\n  \"stock\": 10,\n  \"descripcion\": \"Fixture generado por las pruebas Newman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos"
+          }
+        },
+        {
+          "name": "Verificar producto en la lista",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('la lista incluye el producto creado en esta ejecución', function () { pm.response.to.have.status(200); pm.response.to.be.json; const products = pm.response.json(); pm.expect(products).to.be.an('array'); pm.expect(products.some((product) => product._id === pm.collectionVariables.get('productId') && product.nombre === pm.collectionVariables.get('crudProductName'))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar producto inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"precio\": -1,\n  \"stock\": 1.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con errores de validación', function () { pm.response.to.have.status(400); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Los datos del producto no son válidos.'); pm.expect(body.errors).to.be.an('array').that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar producto de prueba",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 15.75,\n  \"stock\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con los campos actualizados', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Producto actualizado correctamente.'); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('productId')); pm.expect(body.producto.precio).to.eql(15.75); pm.expect(body.producto.stock).to.eql(12); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar ID de producto inválido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos/id-invalido"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 para un ID inválido', function () { pm.response.to.have.status(400); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('El identificador del producto no es válido.'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar producto de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con el producto eliminado', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Producto eliminado correctamente.'); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('productId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar eliminación con ID inválido",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos/id-invalido"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 para un ID inválido', function () { pm.response.to.have.status(400); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('El identificador del producto no es válido.'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar eliminación de producto inexistente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404 al eliminar por segunda vez', function () { pm.response.to.have.status(404); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('Producto no encontrado.'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categorías",
+      "item": [
+        {
+          "name": "Listar categorías",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con una lista JSON', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear categoría de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{categoryName}}\",\n  \"descripcion\": \"Fixture generado por las pruebas Newman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 con la categoría creada', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Categoría creada correctamente.'); pm.expect(body.categoria._id).to.be.a('string'); pm.expect(body.categoria.nombre).to.eql(pm.collectionVariables.get('categoryName')); pm.collectionVariables.set('categoryId', body.categoria._id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar categoría en la lista",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('la lista incluye la categoría creada en esta ejecución', function () { pm.response.to.have.status(200); pm.response.to.be.json; const categories = pm.response.json(); pm.expect(categories).to.be.an('array'); pm.expect(categories.some((category) => category._id === pm.collectionVariables.get('categoryId') && category.nombre === pm.collectionVariables.get('categoryName'))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar categoría duplicada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{categoryName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409 para una categoría duplicada', function () { pm.response.to.have.status(409); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('Ya existe una categoría con ese nombre.'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar categoría sin nombre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Sin nombre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 para una categoría inválida', function () { pm.response.to.have.status(400); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Los datos de la categoría no son válidos.'); pm.expect(body.errors).to.be.an('array').that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Movimientos de inventario",
+      "item": [
+        {
+          "name": "Consultar existencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/inventario/existencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con existencias en formato JSON', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto de inventario de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{inventoryProductName}}\",\n  \"precio\": 1,\n  \"stock\": 0,\n  \"descripcion\": \"Fixture Newman conservado por su historial de movimientos\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 y crea el producto de inventario', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.producto.nombre).to.eql(pm.collectionVariables.get('inventoryProductName')); pm.expect(body.producto.stock).to.eql(0); pm.collectionVariables.set('inventoryProductId', body.producto._id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar entrada de inventario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{inventoryProductId}}\",\n  \"cantidad\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/inventario/entradas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 y aumenta el stock', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Movimiento registrado correctamente.'); pm.expect(body.movimiento.tipo).to.eql('ENTRADA'); pm.expect(body.movimiento.cantidad).to.eql(5); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('inventoryProductId')); pm.expect(body.producto.stock).to.eql(5); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar existencias actualizadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/inventario/existencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('la lista refleja el stock del producto de prueba', function () { pm.response.to.have.status(200); pm.response.to.be.json; const stocks = pm.response.json(); const stock = stocks.find((item) => item._id === pm.collectionVariables.get('inventoryProductId')); pm.expect(stock).to.be.an('object'); pm.expect(stock.nombre).to.eql(pm.collectionVariables.get('inventoryProductName')); pm.expect(stock.stock).to.eql(5); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar salida de inventario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{inventoryProductId}}\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/inventario/salidas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 y disminuye el stock', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Movimiento registrado correctamente.'); pm.expect(body.movimiento.tipo).to.eql('SALIDA'); pm.expect(body.movimiento.cantidad).to.eql(2); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('inventoryProductId')); pm.expect(body.producto.stock).to.eql(3); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar salida sin existencias suficientes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{inventoryProductId}}\",\n  \"cantidad\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/inventario/salidas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409 por stock insuficiente', function () { pm.response.to.have.status(409); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('No hay existencias suficientes para realizar la salida.'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar movimiento inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{inventoryProductId}}\",\n  \"cantidad\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/inventario/entradas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 para una cantidad no positiva', function () { pm.response.to.have.status(400); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Los datos del movimiento no son válidos.'); pm.expect(body.errors).to.be.an('array').that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar movimiento para producto inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productId}}\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/inventario/entradas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404 al referir el producto eliminado', function () { pm.response.to.have.status(404); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('Producto no encontrado.'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "crudProductName",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "inventoryProductName",
+      "value": ""
+    },
+    {
+      "key": "inventoryProductId",
+      "value": ""
+    },
+    {
+      "key": "categoryName",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    }
+  ]
+}
