@@ -43,12 +43,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: jest
-
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
+    env:
+      POSTMAN_TARGET: ci
+      POSTMAN_BASE_URL: http://127.0.0.1:3000
+      POSTMAN_BODEGUERO_PASSWORD: CiOnlyBodeguero123
+      PORT: 3000
+      MONGO_URI: mongodb://127.0.0.1:27017/stockflow_test?replicaSet=rs0
+      JWT_SECRET: ci-only-jwt-secret-for-stockflow-tests
+      ADMIN_NAME: Newman CI Admin
+      ADMIN_EMAIL: newman-ci-admin@example.test
+      ADMIN_PASSWORD: CiOnlyAdmin12345
 
     steps:
       - name: Checkout code
@@ -63,19 +67,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start isolated MongoDB replica set
+        run: |
+          docker run --detach --rm --name stockflow-mongodb \
+            --publish 27017:27017 mongo:7 mongod --replSet rs0 --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec stockflow-mongodb mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec stockflow-mongodb mongosh --quiet --eval \
+            'rs.initiate({_id: "rs0", members: [{_id: 0, host: "127.0.0.1:27017"}]})'
+          for attempt in {1..30}; do
+            if docker exec stockflow-mongodb mongosh \
+              "mongodb://127.0.0.1:27017/stockflow_test?replicaSet=rs0" \
+              --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec stockflow-mongodb mongosh \
+            "mongodb://127.0.0.1:27017/stockflow_test?replicaSet=rs0" \
+            --quiet --eval 'if (!db.hello().isWritablePrimary) quit(1)'
+
+      - name: Seed isolated CI administrator
+        run: npm run seed:admin
+
       - name: Start API for Newman
-        env:
-          PORT: 3000
-          MONGO_URI: mongodb://127.0.0.1:27017/stockflow_test
         run: |
           node server.js > server.log 2>&1 &
-          for i in {1..30}; do
+          for i in {1..60}; do
             if curl -fsS http://127.0.0.1:3000/ > /dev/null; then
               break
             fi
             sleep 2
           done
-          curl -fsS http://127.0.0.1:3000/ > /dev/null
+          if ! curl -fsS http://127.0.0.1:3000/ > /dev/null; then
+            cat server.log
+            exit 1
+          fi
 
       - name: Run Postman collection
         run: npm run test:postman

@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const connectDB = require('../config/db');
 const User = require('../models/User');
 
@@ -64,7 +63,7 @@ async function main() {
     const creado = await ensureAdmin(config);
     console.log(creado ? 'Administrador inicial creado.' : 'El administrador inicial ya existe; no se realizaron cambios.');
   } finally {
-    await mongoose.disconnect();
+    await connectDB.disconnect();
   }
 }
 

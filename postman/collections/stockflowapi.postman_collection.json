@@ -87,7 +87,7 @@
           }
         },
         {
-          "name": "Iniciar sesi?n de administrador",
+          "name": "Iniciar sesión de administrador",
           "request": {
             "method": "POST",
             "header": [
@@ -184,6 +184,92 @@
             },
             "url": "{{baseUrl}}/api/auth/login"
           }
+        },
+        {
+          "name": "Denegar crear producto a bodeguero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Producto no autorizado {{$guid}}\",\n  \"precio\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/productos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bodegueroToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bodeguero no crea productos', function () { pm.response.to.have.status(403); pm.response.to.be.json; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Denegar crear categoría a bodeguero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Categoría no autorizada {{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/categorias",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bodegueroToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bodeguero no crea categorías', function () { pm.response.to.have.status(403); pm.response.to.be.json; });"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Denegar crear usuario a bodeguero",
@@ -556,7 +642,7 @@
           ]
         },
         {
-          "name": "Rechazar modificaci?n directa del stock",
+          "name": "Rechazar modificación directa del stock",
           "request": {
             "method": "PATCH",
             "header": [
@@ -775,6 +861,39 @@
           ]
         },
         {
+          "name": "Actualizar categoría de prueba",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Actualizada por Newman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/categorias/{{categoryId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin actualiza la categoría de prueba', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.categoria._id).to.eql(pm.collectionVariables.get('categoryId')); pm.expect(body.categoria.descripcion).to.eql('Actualizada por Newman'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Rechazar categoría sin nombre",
           "request": {
             "method": "POST",
@@ -808,7 +927,7 @@
           ]
         },
         {
-          "name": "Eliminar categor?a de prueba",
+          "name": "Eliminar categoría de prueba",
           "request": {
             "method": "DELETE",
             "header": [],

@@ -17,9 +17,10 @@ function maskCredentials(message = '') {
 }
 
 let connectedOnce = false;
+let disconnectingIntentionally = false;
 
 /**
- * Establece la conexión con MongoDB Atlas.
+ * Establece la conexión con MongoDB.
  *
  * La cadena de conexión se toma exclusivamente de la variable de entorno
  * MONGO_URI; nunca se escribe en el código fuente ni se versiona.
@@ -47,24 +48,36 @@ async function connectDB() {
       serverSelectionTimeoutMS: 10000,
     });
 
-    console.log('Conexión con MongoDB Atlas establecida correctamente.');
+    console.log('Conexión con MongoDB establecida correctamente.');
     connectedOnce = true;
     return mongoose.connection;
   } catch (error) {
-    throw new Error(`No se pudo conectar con MongoDB Atlas: ${maskCredentials(error.message)}`);
+    throw new Error(`No se pudo conectar con MongoDB: ${maskCredentials(error.message)}`);
+  }
+}
+
+async function disconnectDB() {
+  disconnectingIntentionally = true;
+  try {
+    await mongoose.disconnect();
+  } finally {
+    connectedOnce = false;
+    disconnectingIntentionally = false;
   }
 }
 
 // Eventos posteriores a la conexión inicial: se reportan sin interrumpir el proceso.
 // Solo aplican si la primera conexión fue exitosa (evita duplicar el error de arranque).
 mongoose.connection.on('error', (error) => {
-  if (!connectedOnce) return;
-  console.error('Error en la conexión con MongoDB Atlas:', maskCredentials(error.message));
+  if (!connectedOnce || disconnectingIntentionally) return;
+  console.error('Error en la conexión con MongoDB:', maskCredentials(error.message));
 });
 
 mongoose.connection.on('disconnected', () => {
-  if (!connectedOnce) return;
-  console.warn('Conexión con MongoDB Atlas perdida.');
+  if (!connectedOnce || disconnectingIntentionally) return;
+  console.warn('Conexión con MongoDB perdida.');
 });
+
+connectDB.disconnect = disconnectDB;
 
 module.exports = connectDB;

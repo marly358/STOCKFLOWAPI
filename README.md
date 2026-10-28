@@ -154,32 +154,37 @@ transacciones. `tests/integration/api.test.js` utiliza MongoDB Memory Server
 configurado como replica set; la primera ejecución puede requerir descargar su
 binario. Las pruebas no deben usar la base de desarrollo.
 
-La colección Postman existente está en
-`postman/collections/stockflowapi.postman_collection.json` y el entorno en
-`postman/environments/local.postman_environment.json`. Newman requiere que la
-API esté ejecutándose con una base local/de pruebas, que el seed haya creado
-el administrador y que `adminEmail` y `adminPassword` se configuren en el
-entorno de Postman sin guardar credenciales reales en el archivo versionado.
-`bodegueroPassword` es una contraseña de fixture local configurable; no la
-reutilices en otros entornos.
-Las pruebas generan nombres e identificadores únicos. La colección limpia los
+La colección Postman está en
+`postman/collections/stockflowapi.postman_collection.json`; el entorno
+versionado no contiene credenciales. `npm run test:postman` valida las
+credenciales antes de iniciar las pruebas y levanta una API y un replica set
+efímeros mediante MongoDB Memory Server. Nunca usa `MONGO_URI` para esta
+ejecución, por lo que no se conecta a Atlas ni requiere una API local ya
+iniciada. El administrador temporal se crea en esa base aislada y se descarta
+al finalizar.
+
+Localmente, el script toma el correo y la contraseña de `ADMIN_EMAIL` y
+`ADMIN_PASSWORD` en `.env`; también acepta `POSTMAN_ADMIN_EMAIL` y
+`POSTMAN_ADMIN_PASSWORD` del entorno del proceso, que tienen precedencia. No
+guarda ni imprime esos valores. La contraseña fixture de bodeguero se toma de
+`POSTMAN_BODEGUERO_PASSWORD` o de `bodegueroPassword` en el entorno Postman.
+La colección crea fixtures con nombres e identificadores únicos, elimina los
 productos sin historial y la categoría de prueba; el producto con movimientos
-se conserva desactivado para preservar trazabilidad. Evita ejecutar Newman
-contra producción.
+se conserva desactivado para preservar trazabilidad.
 
 ```powershell
+npm test
 npm run test:postman
 ```
 
 ## CI / GitHub Actions
 
-La pipeline de integración continua usa Node.js 20, instala dependencias con
-`npm ci` y ejecuta la validación real del proyecto en cada push y pull request:
+El workflow de `.github/workflows/ci.yml` usa Node.js 20 y ejecuta `npm ci`,
+`npm test` y la colección Newman en cada push y pull request. El job de Newman
+arranca un contenedor MongoDB 7 dedicado como replica set, espera al primario,
+usa exclusivamente la base `stockflow_test`, inicializa el administrador de
+CI y espera a que la API local responda antes de ejecutar la colección.
 
-- `npm test` para la suite de Jest completa.
-- `npm run test:unit` y `npm run test:integration` para validación aislada.
-- `npm run test:postman` para validar la colección de Newman contra la API.
-
-El flujo está definido en `.github/workflows/ci.yml` y no expone secretos ni
-credenciales reales en el repositorio; solo usa variables de entorno del
-entorno de CI y una base de pruebas local o temporaria.
+En CI, el runner de Newman exige el destino local, el nombre de base de prueba
+y el replica set `rs0`. Usa credenciales fixture definidas en el workflow, no
+lee `.env` ni requiere secretos de producción.
