@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/entradas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productoId": "{{inventoryProductId}}",
+      "cantidad": 0
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 400 para una cantidad no positiva', function () { pm.response.to.have.status(400); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Los datos del movimiento no son válidos.'); pm.expect(body.errors).to.be.an('array').that.is.not.empty; });
+    language: text/javascript
+order: 7000

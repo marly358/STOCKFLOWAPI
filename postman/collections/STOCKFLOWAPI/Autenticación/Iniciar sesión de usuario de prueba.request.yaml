@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{authEmail}}",
+      "password": "{{bodegueroPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('bodeguero inicia sesion y recibe JWT sin datos sensibles', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.token).to.be.a('string').and.not.empty; pm.expect(body.usuario.role).to.eql('bodeguero'); pm.expect(body.usuario).not.to.have.property('passwordHash'); pm.collectionVariables.set('bodegueroToken', body.token); pm.collectionVariables.set('bodegueroId', body.usuario._id); pm.collectionVariables.set('token', body.token); });
+    language: text/javascript
+order: 5000

@@ -1,0 +1,22 @@
+$kind: collection
+description: Coleccion incremental de pruebas de STOCKFLOWAPI. Ejecutar solo contra una base de datos local o de pruebas; configure adminEmail y adminPassword en el entorno y ejecute el seed antes de empezar.
+variables:
+  runId: ""
+  crudProductName: ""
+  productId: ""
+  inventoryProductName: ""
+  inventoryProductId: ""
+  categoryName: ""
+  categoryId: ""
+  authEmail: ""
+  token: ""
+scripts:
+  - type: http:beforeRequest
+    code: const token = pm.collectionVariables.get('adminToken'); if (token) { pm.collectionVariables.set('authToken', token); pm.collectionVariables.set('token', token); }
+    language: text/javascript
+auth:
+  - id: 5d8339c6-418d-412e-991b-498773796b1a
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{authToken}}"

@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/users"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Bodeguero Newman",
+      "email": "{{authEmail}}",
+      "password": "{{bodegueroPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('admin crea un bodeguero sin exponer el hash', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.usuario.role).to.eql('bodeguero'); pm.expect(body.usuario.email).to.eql(pm.collectionVariables.get('authEmail')); pm.expect(body.usuario).not.to.have.property('passwordHash'); pm.collectionVariables.set('bodegueroId', body.usuario._id); });
+    language: text/javascript
+order: 4000

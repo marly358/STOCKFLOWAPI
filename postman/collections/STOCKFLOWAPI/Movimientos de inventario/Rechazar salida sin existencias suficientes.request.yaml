@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/salidas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productoId": "{{inventoryProductId}}",
+      "cantidad": 1000
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 409 por stock insuficiente', function () { pm.response.to.have.status(409); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('No hay existencias suficientes para realizar la salida.'); });
+    language: text/javascript
+order: 6000

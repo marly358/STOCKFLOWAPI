@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('la lista incluye la categoría creada en esta ejecución', function () { pm.response.to.have.status(200); pm.response.to.be.json; const categories = pm.response.json(); pm.expect(categories).to.be.an('array'); pm.expect(categories.some((category) => category._id === pm.collectionVariables.get('categoryId') && category.nombre === pm.collectionVariables.get('categoryName'))).to.eql(true); });
+    language: text/javascript
+order: 3000

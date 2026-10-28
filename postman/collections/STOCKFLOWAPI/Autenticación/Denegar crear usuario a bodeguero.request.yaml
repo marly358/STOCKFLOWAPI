@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/users"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "No autorizado",
+      "email": "{{authEmail}}",
+      "password": "{{bodegueroPassword}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('bodeguero no crea cuentas', function () { pm.response.to.have.status(403); pm.response.to.be.json; });
+    language: text/javascript
+order: 8000

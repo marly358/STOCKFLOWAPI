@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/me"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('permite consultar el perfil del usuario autenticado', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json().user.email).to.eql(pm.collectionVariables.get('authEmail')); });
+    language: text/javascript
+order: 9000

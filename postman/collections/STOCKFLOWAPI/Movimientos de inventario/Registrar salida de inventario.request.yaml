@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/salidas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productoId": "{{inventoryProductId}}",
+      "cantidad": 2
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 201 y disminuye el stock', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Movimiento registrado correctamente.'); pm.expect(body.movimiento.tipo).to.eql('SALIDA'); pm.expect(body.movimiento.cantidad).to.eql(2); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('inventoryProductId')); pm.expect(body.producto.stock).to.eql(3); });
+    language: text/javascript
+order: 5000

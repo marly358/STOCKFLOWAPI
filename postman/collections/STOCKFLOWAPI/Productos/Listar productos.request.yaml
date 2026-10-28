@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 200 con una lista JSON', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json()).to.be.an('array'); });
+    language: text/javascript
+order: 1000

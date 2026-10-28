@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('la lista incluye el producto creado en esta ejecución', function () { pm.response.to.have.status(200); pm.response.to.be.json; const products = pm.response.json(); pm.expect(products).to.be.an('array'); pm.expect(products.some((product) => product._id === pm.collectionVariables.get('productId') && product.nombre === pm.collectionVariables.get('crudProductName'))).to.eql(true); });
+    language: text/javascript
+order: 3000

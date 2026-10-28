@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/users"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 403 a un usuario sin rol admin', function () { pm.response.to.have.status(403); });
+    language: text/javascript
+order: 10000

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('admin inicia sesion y obtiene JWT', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.token).to.be.a('string').and.not.empty; pm.expect(body.usuario.role).to.eql('admin'); pm.collectionVariables.set('adminToken', body.token); });
+    language: text/javascript
+order: 3000

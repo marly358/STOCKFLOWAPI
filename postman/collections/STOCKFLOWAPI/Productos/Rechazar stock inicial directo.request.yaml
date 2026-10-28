@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Producto con stock ilegal",
+      "precio": 2,
+      "stock": 5
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('rechaza stock inicial enviado por el cliente', function () { pm.response.to.have.status(400); pm.response.to.be.json; pm.expect(pm.response.json().errors.join(' ')).to.include('stock solo puede modificarse'); });
+    language: text/javascript
+order: 5000

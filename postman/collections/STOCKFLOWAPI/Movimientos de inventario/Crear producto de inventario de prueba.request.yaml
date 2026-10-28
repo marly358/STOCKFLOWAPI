@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "{{inventoryProductName}}",
+      "precio": 1,
+      "descripcion": "Fixture Newman conservado por su historial de movimientos"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 201 y crea el producto de inventario', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.producto.nombre).to.eql(pm.collectionVariables.get('inventoryProductName')); pm.expect(body.producto.stock).to.eql(0); pm.collectionVariables.set('inventoryProductId', body.producto._id); });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Usuario Newman",
+      "email": "elevation@example.com",
+      "password": "{{bodegueroPassword}}",
+      "role": "admin"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('tambien bloquea la elevacion de rol por registro', function () { pm.response.to.have.status(403); pm.response.to.be.json; });
+    language: text/javascript
+order: 2000

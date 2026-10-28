@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos/{{productId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "precio": 15.75
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('actualiza datos permitidos sin alterar stock', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.producto.precio).to.eql(15.75); pm.expect(body.producto.stock).to.eql(0); });
+    language: text/javascript
+order: 6000

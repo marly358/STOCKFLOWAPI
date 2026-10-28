@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos/id-invalido"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 400 para un ID inválido', function () { pm.response.to.have.status(400); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('El identificador del producto no es válido.'); });
+    language: text/javascript
+order: 10000

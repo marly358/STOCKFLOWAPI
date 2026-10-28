@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "{{crudProductName}}",
+      "precio": 12.5,
+      "descripcion": "Fixture generado por las pruebas Newman"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      pm.collectionVariables.unset('productId');
+      pm.collectionVariables.unset('inventoryProductId');
+      pm.collectionVariables.unset('categoryId');
+      const runId = pm.variables.replaceIn('{{$guid}}').replace(/-/g, '');
+      pm.collectionVariables.set('runId', runId);
+      pm.collectionVariables.set('crudProductName', `Newman CRUD ${runId}`);
+      pm.collectionVariables.set('inventoryProductName', `Newman inventario ${runId}`);
+      pm.collectionVariables.set('categoryName', `Newman categoría ${runId}`);
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('crea el producto con stock inicial cero', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Producto registrado correctamente.'); pm.expect(body.producto.nombre).to.eql(pm.collectionVariables.get('crudProductName')); pm.expect(body.producto.stock).to.eql(0); pm.collectionVariables.set('productId', body.producto._id); });
+    language: text/javascript
+order: 2000

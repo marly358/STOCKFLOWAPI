@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', function () { pm.response.to.have.status(200); });
+      pm.test('devuelve JSON con el estado del servicio', function () { pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.status).to.eql('ok'); pm.expect(body.service).to.eql('StockFlowAPI'); });
+    language: text/javascript
+order: 1000

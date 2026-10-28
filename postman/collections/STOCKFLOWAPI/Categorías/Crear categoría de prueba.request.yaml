@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "{{categoryName}}",
+      "descripcion": "Fixture generado por las pruebas Newman"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 201 con la categoría creada', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Categoría creada correctamente.'); pm.expect(body.categoria._id).to.be.a('string'); pm.expect(body.categoria.nombre).to.eql(pm.collectionVariables.get('categoryName')); pm.collectionVariables.set('categoryId', body.categoria._id); });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Usuario Newman",
+      "email": "{{authEmail}}",
+      "password": "{{bodegueroPassword}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const runId = pm.variables.replaceIn('{{$guid}}').replace(/-/g, '');
+      pm.collectionVariables.set('authEmail', `newman-${runId}@example.com`);
+      pm.collectionVariables.unset('token');
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('bloquea el registro publico', function () { pm.response.to.have.status(403); pm.response.to.be.json; });
+    language: text/javascript
+order: 1000

@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias/{{categoryId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('admin elimina la categoria sin productos asociados', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json().categoria._id).to.eql(pm.collectionVariables.get('categoryId')); });
+    language: text/javascript
+order: 7000

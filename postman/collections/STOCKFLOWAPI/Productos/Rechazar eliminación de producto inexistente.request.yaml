@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos/{{productId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 404 al eliminar por segunda vez', function () { pm.response.to.have.status(404); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('Producto no encontrado.'); });
+    language: text/javascript
+order: 11000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/movimientos"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('el historial conserva movimientos y responsable sin datos sensibles', function () { pm.response.to.have.status(200); pm.response.to.be.json; const movimientos = pm.response.json(); const movimiento = movimientos.find((item) => item.producto._id === pm.collectionVariables.get('inventoryProductId')); pm.expect(movimiento).to.be.an('object'); pm.expect(movimiento.responsable._id).to.eql(pm.collectionVariables.get('bodegueroId')); pm.expect(movimiento.responsable).not.to.have.property('passwordHash'); });
+    language: text/javascript
+order: 10000

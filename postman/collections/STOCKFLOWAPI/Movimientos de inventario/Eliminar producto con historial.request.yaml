@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos/{{inventoryProductId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('conserva productos con historial mediante baja logica', function () { pm.response.to.have.status(200); pm.response.to.be.json; pm.expect(pm.response.json().producto.activo).to.eql(false); });
+    language: text/javascript
+order: 9000

@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Producto no autorizado {{$guid}}",
+      "precio": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('bodeguero no crea productos', function () { pm.response.to.have.status(403); pm.response.to.be.json; });
+    language: text/javascript
+order: 6000

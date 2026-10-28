@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/entradas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productoId": "{{inventoryProductId}}",
+      "cantidad": 5
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('registra la entrada y guarda al bodeguero autenticado como responsable', function () { pm.response.to.have.status(201); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.movimiento.tipo).to.eql('ENTRADA'); pm.expect(body.movimiento.cantidad).to.eql(5); pm.expect(body.producto.stock).to.eql(5); pm.expect(body.movimiento.responsable).to.eql(pm.collectionVariables.get('bodegueroId')); });
+    language: text/javascript
+order: 3000

@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/productos/{{productId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 200 con el producto eliminado', function () { pm.response.to.have.status(200); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Producto eliminado correctamente.'); pm.expect(body.producto._id).to.eql(pm.collectionVariables.get('productId')); });
+    language: text/javascript
+order: 9000

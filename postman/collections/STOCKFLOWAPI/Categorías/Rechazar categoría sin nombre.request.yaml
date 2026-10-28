@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Sin nombre"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 400 para una categoría inválida', function () { pm.response.to.have.status(400); pm.response.to.be.json; const body = pm.response.json(); pm.expect(body.message).to.eql('Los datos de la categoría no son válidos.'); pm.expect(body.errors).to.be.an('array').that.is.not.empty; });
+    language: text/javascript
+order: 6000

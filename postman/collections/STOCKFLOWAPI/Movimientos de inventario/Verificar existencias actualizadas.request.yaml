@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/existencias"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('la lista refleja el stock del producto de prueba', function () { pm.response.to.have.status(200); pm.response.to.be.json; const stocks = pm.response.json(); const stock = stocks.find((item) => item._id === pm.collectionVariables.get('inventoryProductId')); pm.expect(stock).to.be.an('object'); pm.expect(stock.nombre).to.eql(pm.collectionVariables.get('inventoryProductName')); pm.expect(stock.stock).to.eql(5); });
+    language: text/javascript
+order: 4000

@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/inventario/entradas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productoId": "{{productId}}",
+      "cantidad": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bodegueroToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 404 al referir el producto eliminado', function () { pm.response.to.have.status(404); pm.response.to.be.json; pm.expect(pm.response.json().message).to.eql('Producto no encontrado.'); });
+    language: text/javascript
+order: 8000
