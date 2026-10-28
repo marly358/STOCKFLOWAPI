@@ -170,3 +170,16 @@ contra producción.
 ```powershell
 npm run test:postman
 ```
+
+## CI / GitHub Actions
+
+La pipeline de integración continua usa Node.js 20, instala dependencias con
+`npm ci` y ejecuta la validación real del proyecto en cada push y pull request:
+
+- `npm test` para la suite de Jest completa.
+- `npm run test:unit` y `npm run test:integration` para validación aislada.
+- `npm run test:postman` para validar la colección de Newman contra la API.
+
+El flujo está definido en `.github/workflows/ci.yml` y no expone secretos ni
+credenciales reales en el repositorio; solo usa variables de entorno del
+entorno de CI y una base de pruebas local o temporaria.
