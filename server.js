@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    max: 2000,
     message: 'Demasiadas peticiones recibidas desde esta IP, intenta nuevamente más tarde.',
     standardHeaders: true,
     legacyHeaders: false,
